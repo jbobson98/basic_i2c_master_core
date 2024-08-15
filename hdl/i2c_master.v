@@ -278,12 +278,9 @@ always @(posedge i_clk) begin
                 start_gen_start <= 1'b0;
                 if(start_gen_done) begin
                     case({addr_10bit_mode, read_mode})
-
                         2'b00: state <= OP_WRITE_7BIT_START;  // Write operation, 7 bit address
                         2'b01: state <= OP_READ_7BIT_START;   // Read operation, 7 bit address
-
-
-
+                        // Expand here for 10bit address mode
                         default: state <= IDLE;
                     endcase
                 end
