@@ -138,7 +138,7 @@ always @(posedge i_clk or posedge rst_sync) begin
                     i2c_tx_data <= OLED_ALL_ON;
                 end
 
-                if(i2c_status_reg[3]) begin // tx done
+                if(~i2c_status_reg[4]) begin // tx done
                     state <= IDLE;
                 end
             end
