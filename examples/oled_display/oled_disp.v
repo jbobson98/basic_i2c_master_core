@@ -23,7 +23,6 @@ localparam OLED_DISP_OFF    = 8'hAE;
 localparam OLED_CMD_BYTE    = 8'h00;
 //localparam OLED_DC_BYTE     = 8'h40; data byte
 
-
 /* Debounce and synchronize buttons */
 wire rst_sync, cmd_1_sync, cmd_2_sync;
 debouncer #(.CLK_FREQ(CLK_FREQ)) reset_debouncer 
@@ -82,14 +81,6 @@ localparam SEND_CMD_3 = 8'd4;
 assign o_oled_rst = ~(state == RESET);
 assign o_oled_rst_led = ~(state == RESET);
 assign o_status_led = i2c_status_reg;
-
-
-
-
-
-
-
-
 
 always @(posedge i_clk or posedge rst_sync) begin
 
@@ -155,40 +146,5 @@ always @(posedge i_clk or posedge rst_sync) begin
         endcase
     end
 end
-
-
-
-
-
-// A5 entire display on
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 endmodule

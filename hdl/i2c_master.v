@@ -11,7 +11,7 @@
         - Raw reads (for simple slave devices without selectable internal registers)
 
     TODO:
-        - add timout timer for clock stretching on rx and tx
+        - add timeout timer for clock stretching on rx and tx
 */
 
 `timescale 1ns / 1ps
