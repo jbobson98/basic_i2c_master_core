@@ -73,19 +73,20 @@ localparam START = 8'd1;
 localparam STOP  = 8'd2;
 
 /* STATES: Write Operation, 7-Bit Address Mode */
-localparam OP_WRITE_7BIT_START    = 8'd3;
-localparam OP_WRITE_7BIT_ADDR     = 8'd4;
-localparam OP_WRITE_7BIT_DATA     = 8'd5;
-localparam OP_WRITE_7BIT_REQ_DATA = 8'd6;
+localparam OP_WRITE_7BIT_START      = 8'd3;
+localparam OP_WRITE_7BIT_ADDR       = 8'd4;
+localparam OP_WRITE_7BIT_DATA       = 8'd5;
+localparam OP_WRITE_7BIT_REQ_DATA_1 = 8'd6;
+localparam OP_WRITE_7BIT_REQ_DATA_2 = 8'd7;
 
 /* STATES: Read Operation, 7-Bit Address Mode */
-localparam OP_READ_7BIT_START        = 8'd7;
-localparam OP_READ_7BIT_DEV_ADDR_1   = 8'd8;
-localparam OP_READ_7BIT_DEV_ADDR_2   = 8'd9;
-localparam OP_READ_7BIT_REG_ADDR     = 8'd10;
-localparam OP_READ_7BIT_REPEAT_START = 8'd11;
-localparam OP_READ_7BIT_DATA_1       = 8'd12;
-localparam OP_READ_7BIT_DATA_2       = 8'd13;
+localparam OP_READ_7BIT_START        = 8'd8;
+localparam OP_READ_7BIT_DEV_ADDR_1   = 8'd9;
+localparam OP_READ_7BIT_DEV_ADDR_2   = 8'd10;
+localparam OP_READ_7BIT_REG_ADDR     = 8'd11;
+localparam OP_READ_7BIT_REPEAT_START = 8'd12;
+localparam OP_READ_7BIT_DATA_1       = 8'd13;
+localparam OP_READ_7BIT_DATA_2       = 8'd14;
 
 /* Internal Registers */
 reg [9:0] slave_addr = 0;
@@ -103,10 +104,10 @@ assign read_mode       = mode_reg[2];       // 0 = write mode, 1 = read mode
 assign raw_read        = mode_reg[1];       // 0 = write address of slave reg then read, 1 = raw read command
 
 /* Slave Address Parsing */
-wire [7:0] addr10_byte1, addr10_byte2, addr10_read;
-assign addr10_byte1 = {5'b11110, slave_addr[9:8], 1'b0};
-assign addr10_byte2 = slave_addr[7:0];
-assign addr10_read  = {5'b11110, slave_addr[9:8], read_mode};
+//wire [7:0] addr10_byte1, addr10_byte2, addr10_read;
+//assign addr10_byte1 = {5'b11110, slave_addr[9:8], 1'b0};
+//assign addr10_byte2 = slave_addr[7:0];
+//assign addr10_read  = {5'b11110, slave_addr[9:8], read_mode};
 
 /* TX Controller */
 wire tx_ctrl_sda_out, tx_ctrl_scl_out;
@@ -181,8 +182,8 @@ i2c_stop_generator stop_gen (
 
 /* Tri-State Output */
 wire sda_disable_on_read, scl_disable_on_read;
-assign sda_disable_on_read = ((state == READ || state == OP_READ_7BIT_DATA_1) && rx_ctrl_sda_disable);
-assign scl_disable_on_read = ((state == READ || state == OP_READ_7BIT_DATA_1) && rx_ctrl_scl_disable);
+assign sda_disable_on_read = ((state == OP_READ_7BIT_DATA_1) && rx_ctrl_sda_disable);
+assign scl_disable_on_read = ((state == OP_READ_7BIT_DATA_1) && rx_ctrl_scl_disable);
 assign io_sda  = ((state != IDLE) && ~tx_ctrl_sda_disable && ~sda_disable_on_read) ? sda : 1'bz;
 assign io_scl  = ((state != IDLE) && ~tx_ctrl_scl_disable && ~scl_disable_on_read) ? scl : 1'bz;
 
@@ -201,8 +202,8 @@ always @(*) begin
         end
 
         OP_WRITE_7BIT_ADDR, OP_WRITE_7BIT_DATA,
-        OP_WRITE_7BIT_REQ_DATA, OP_READ_7BIT_DEV_ADDR_1,
-        OP_READ_7BIT_DEV_ADDR_2, OP_READ_7BIT_REG_ADDR: begin
+        OP_WRITE_7BIT_REQ_DATA_1, OP_WRITE_7BIT_REQ_DATA_2, 
+        OP_READ_7BIT_DEV_ADDR_1, OP_READ_7BIT_DEV_ADDR_2, OP_READ_7BIT_REG_ADDR: begin
             sda = tx_ctrl_sda_out;
             scl = tx_ctrl_scl_out;
         end
@@ -313,7 +314,7 @@ always @(posedge i_clk) begin
                     tx_ctrl_start <= 1'b1;
                     tx_ctrl_tx_data <= tx_data;
                     byte_cnt <= byte_cnt - 1;
-                    state <= WRITE;
+                    state <= OP_WRITE_7BIT_DATA;
                 end
 
                 if(tx_ctrl_error) begin
@@ -329,7 +330,7 @@ always @(posedge i_clk) begin
                 if(tx_ctrl_done) begin
                     if(byte_cnt != 0) begin
                         o_tx_data_needed <= 1'b1;
-                        state <= OP_WRITE_7BIT_REQ_DATA;
+                        state <= OP_WRITE_7BIT_REQ_DATA_1;
                     end else begin
                         state <= STOP;
                         stop_gen_start <= 1'b1;
@@ -345,7 +346,11 @@ always @(posedge i_clk) begin
             end
 
             /* Request Data to Send */
-            OP_WRITE_7BIT_REQ_DATA: begin
+            OP_WRITE_7BIT_REQ_DATA_1: begin
+                state <= OP_WRITE_7BIT_REQ_DATA_2;
+            end
+
+            OP_WRITE_7BIT_REQ_DATA_2: begin
                 o_tx_data_needed <= 1'b0;
                 tx_ctrl_tx_data <= i_tx_data;
                 tx_ctrl_start <= 1'b1;
